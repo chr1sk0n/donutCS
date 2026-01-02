@@ -1,12 +1,10 @@
-﻿using System;
-using System.IO;
-using System.Text;
+﻿using CommandLine;
+using DonutCore.Structs;
+using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
-using CommandLine;
-using Donut.Structs;
-
-namespace Donut
+namespace DonutCore
 {
     public class Donut
     {
@@ -19,15 +17,7 @@ namespace Donut
             // Parse args and assign to struct
             Parser.Default.ParseArguments<Options>(args).WithParsed(opts =>
             {
-                if (opts.InputFile.Equals(null) == true)
-                {
-                    opts.GetUsage();
-                    Environment.Exit(0);
-                }
-                else
-                {
-                    Helper.ParseArguments(opts, ref config);
-                }
+                Helper.ParseArguments(opts, ref config);
             });
 
             // Start Generation with Config

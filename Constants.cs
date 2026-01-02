@@ -1,5 +1,7 @@
 ﻿using System;
-using Donut.Payloads;
+using DonutCore.Payloads;
+
+namespace DonutCore;
 
 public class Constants
 {
@@ -104,6 +106,6 @@ public class Constants
     public static int MARU_IV_LEN =     MARU_HASH_LEN;
 
     // Payload shorthand
-    public static byte[] PAYLOAD_EXE_x86 = payload_exe_x86.PAYLOAD_EXE_X86;
-    public static byte[] PAYLOAD_EXE_x64 = payload_exe_x64.PAYLOAD_EXE_X64;
+    public static byte[] PAYLOAD_EXE_x86 = PayloadExeX86.PAYLOAD_EXE_X86;
+    public static byte[] PAYLOAD_EXE_x64 = PayloadExeX64.PAYLOAD_EXE_X64;
 }

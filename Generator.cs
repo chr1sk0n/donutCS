@@ -3,9 +3,9 @@ using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 
-using Donut.Structs;
+using DonutCore.Structs;
 
-namespace Donut
+namespace DonutCore
 {
     public class Generator
     {
@@ -74,6 +74,7 @@ namespace Donut
 
             return ret;
         }
+        
         public static int CreateModule(ref DSConfig config, ref DSFileInfo fi)
         {
             string[] param;
@@ -92,15 +93,15 @@ namespace Donut
                 {
                     Helper.Copy(config.domain, Helper.RandomString(8));
                 }
-                Console.WriteLine($"\tDomain:\t{Helper.String(config.domain)}");
-                Helper.Unicode(mod.domain, Helper.String(config.domain));
+                Console.WriteLine($"\tDomain:\t{Helper.Stringify(config.domain)}");
+                Helper.Unicode(mod.domain, Helper.Stringify(config.domain));
 
                 if (mod.type == Constants.DONUT_MODULE_NET_DLL)
                 {
-                    Console.WriteLine($"\tClass:\t{Helper.String(config.cls)}");
-                    Helper.Unicode(mod.cls, Helper.String(config.cls));
-                    Console.WriteLine($"\tMethod:\t{Helper.String(config.method)}");
-                    Helper.Unicode(mod.method, Helper.String(config.method));
+                    Console.WriteLine($"\tClass:\t{Helper.Stringify(config.cls)}");
+                    Helper.Unicode(mod.cls, Helper.Stringify(config.cls));
+                    Console.WriteLine($"\tMethod:\t{Helper.Stringify(config.method)}");
+                    Helper.Unicode(mod.method, Helper.Stringify(config.method));
                 }
 
                 // If no runtime specified, use the version from assembly
@@ -108,8 +109,8 @@ namespace Donut
                 {
                     config.runtime = fi.ver;
                 }
-                Console.WriteLine($"\tRuntime:{Helper.String(config.runtime)}");
-                Helper.Unicode(mod.runtime, Helper.String(config.runtime));
+                Console.WriteLine($"\tRuntime:{Helper.Stringify(config.runtime)}");
+                Helper.Unicode(mod.runtime, Helper.Stringify(config.runtime));
             }
 
             // Unmanaged DLL?
@@ -122,15 +123,14 @@ namespace Donut
                 }
                 else
                 {
-                    Helper.Copy(mod.method, Helper.String(config.method));
+                    Helper.Copy(mod.method, Helper.Stringify(config.method));
                 }
-
             }
 
             if (config.param != null)
             {
                 // Assign params
-                param = Helper.String(config.param).Split(new char[] { ',', ';' });
+                param = Helper.Stringify(config.param).Split([',', ';']);
                 for (int cnt = 0; cnt < param.Length; cnt++)
                 {
                     Helper.Unicode(mod.p[cnt].param, param[cnt]);
@@ -145,18 +145,19 @@ namespace Donut
             }
 
             // Assign Module Length
-            mod.len = Convert.ToUInt32(new FileInfo(Helper.String(config.file)).Length);
+            mod.len = Convert.ToUInt32(new FileInfo(Helper.Stringify(config.file)).Length);
 
             // Update Module and Length in Config
             config.mod = mod;
-            config.mod_len = Convert.ToUInt32(Marshal.SizeOf(typeof(DSModule))) + mod.len;
+            config.mod_len = Convert.ToUInt32(Marshal.SizeOf<DSModule>()) + mod.len;
             D.Print($"Total Module Size: {config.mod_len}");
             return Constants.DONUT_ERROR_SUCCESS;
         }
-        public unsafe static int CreateInstance(ref DSConfig config)
+        
+        public static unsafe int CreateInstance(ref DSConfig config)
         {
             byte[] bytes;
-            UInt32 inst_len = Convert.ToUInt32(Marshal.SizeOf(typeof(DSInstance)));
+            UInt32 inst_len = Convert.ToUInt32(Marshal.SizeOf<DSInstance>());
 
             D.Print("Entering CreateInstance()");
 
@@ -167,7 +168,7 @@ namespace Donut
             if (config.inst_type == Constants.DONUT_INSTANCE_PIC)
             {
                 D.Print($"Adding module size {config.mod_len} to instance size");
-                inst_len += Convert.ToUInt32(Marshal.SizeOf(typeof(DSModule)) + 32) + Convert.ToUInt32(config.mod_len);
+                inst_len += Convert.ToUInt32(Marshal.SizeOf<DSModule>() + 32) + Convert.ToUInt32(config.mod_len);
             }
 
             // Generate instance key and counter
@@ -183,8 +184,8 @@ namespace Donut
                     inst.key.mk[i - 16] = bytes[i];
                 }
             }
-            D.Print($"Instance CTR:\t{BitConverter.ToString(inst.key.ctr).Replace("-", "")}");
-            D.Print($"Instance MK :\t{BitConverter.ToString(inst.key.mk).Replace("-", "")}");
+            D.Print($"Instance CTR:\t{Convert.ToHexString(inst.key.ctr)}");
+            D.Print($"Instance MK :\t{Convert.ToHexString(inst.key.mk)}");
 
             // Generate module key and counter
             bytes = Helper.RandomBytes(32);
@@ -199,16 +200,16 @@ namespace Donut
                     inst.mod_key.mk[i - 16] = bytes[i];
                 }
             }
-            D.Print($"Module CTR:\t{BitConverter.ToString(inst.mod_key.ctr).Replace("-", "")}");
-            D.Print($"Module MK :\t{BitConverter.ToString(inst.mod_key.mk).Replace("-", "")}");
+            D.Print($"Module CTR:\t{Convert.ToHexString(inst.mod_key.ctr)}");
+            D.Print($"Module MK :\t{Convert.ToHexString(inst.mod_key.mk)}");
 
             // Create Verifier string
             Helper.Copy(inst.sig, Helper.RandomString(8));
-            D.Print($"Decryption Verfier String: {Helper.String(inst.sig)}");
+            D.Print($"Decryption Verifier Stringify: {Helper.Stringify(inst.sig)}");
 
             // Create IV
             inst.iv = BitConverter.ToUInt64(Helper.RandomBytes(8), 0);
-            D.Print($"IV for Maru Hash:\t{BitConverter.ToString(bytes).Replace("-", "")}");
+            D.Print($"IV for Maru Hash:\t{Convert.ToHexString(bytes)}");
 
             // Generate DLL and API hashes
             Helper.APIImports(ref inst);
@@ -271,10 +272,10 @@ namespace Donut
                 inst.http.url = new char[Constants.DONUT_MAX_URL];
                 inst.http.req = new char[8];
                 config.modname = Helper.RandomString(Constants.DONUT_MAX_MODNAME).ToCharArray();
-                Helper.Copy(inst.http.url, Helper.String(config.url) + Helper.String(config.modname));
+                Helper.Copy(inst.http.url, Helper.Stringify(config.url) + Helper.Stringify(config.modname));
                 Helper.Copy(inst.http.req, "GET");
 
-                D.Print($"Payload will be downloaded from {Helper.String(inst.http.url)}");
+                D.Print($"Payload will be downloaded from {Helper.Stringify(inst.http.url)}");
             }
 
             // Update struct lengths
@@ -284,7 +285,7 @@ namespace Donut
             config.inst_len = inst_len;
 
             // Generate MAC
-            inst.mac = Helper.Maru(Helper.String(inst.sig), ref inst);
+            inst.mac = Helper.Maru(Helper.Stringify(inst.sig), ref inst);
 
             // Copy Instance to memory
             var instptr = Marshal.AllocHGlobal(Convert.ToInt32(config.inst_len));
@@ -295,14 +296,14 @@ namespace Donut
             Marshal.StructureToPtr(config.mod, modptr, false);
 
             // Calculate offsets
-            var encoffset = Marshal.OffsetOf(typeof(DSInstance), "api_cnt").ToInt32();
+            var encoffset = Marshal.OffsetOf<DSInstance>("api_cnt").ToInt32();
             var encptr = IntPtr.Add(instptr, encoffset);
-            var modoffset = Marshal.OffsetOf(typeof(DSInstance), "module").ToInt32();
+            var modoffset = Marshal.OffsetOf<DSInstance>("module").ToInt32();
             var moddata = IntPtr.Add(instptr, modoffset);
-            var fileoffset = Marshal.OffsetOf(typeof(DSModule), "data").ToInt32();
+            var fileoffset = Marshal.OffsetOf<DSModule>("data").ToInt32();
 
             // Copy Module to Instance
-            Buffer.MemoryCopy(modptr.ToPointer(), moddata.ToPointer(), Marshal.SizeOf(typeof(DSModule)), Marshal.SizeOf(typeof(DSModule)));
+            Buffer.MemoryCopy(modptr.ToPointer(), moddata.ToPointer(), Marshal.SizeOf<DSModule>(), Marshal.SizeOf<DSModule>());
 
             // if URL, copy stuff
             if (inst.type == Constants.DONUT_INSTANCE_URL)
@@ -317,7 +318,7 @@ namespace Donut
                 D.Print($"Copying PIC module data to instance");
                 // Copy payload file to end of module
 
-                byte[] payload = File.ReadAllBytes(Helper.String(config.file));
+                byte[] payload = File.ReadAllBytes(Helper.Stringify(config.file));
                 IntPtr unmanagedPointer = Marshal.AllocHGlobal(payload.Length);
                 Marshal.Copy(payload, 0, unmanagedPointer, payload.Length);
 
@@ -344,7 +345,7 @@ namespace Donut
 
             return Constants.DONUT_ERROR_SUCCESS;
         }
-        public unsafe static int Shellcode(ref DSConfig config, IntPtr instptr)
+        public static unsafe int Shellcode(ref DSConfig config, IntPtr instptr)
         {
             D.Print("Entering Shellcode()");
 
@@ -422,7 +423,6 @@ namespace Donut
 
         public static int CompileLoader()
         {
-
             return Constants.DONUT_ERROR_SUCCESS;
         }
     }

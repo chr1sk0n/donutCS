@@ -2,28 +2,29 @@
 using System.IO;
 using System.Runtime.InteropServices;
 
-using Donut.Structs;
+using DonutCore.Structs;
 
-namespace Donut
+namespace DonutCore
 {
     public class D
     {
         [System.Diagnostics.Conditional("DEBUG")]
-        static public void Print(string printme)
+        public static void Print(string printMe)
         {
-            Console.WriteLine($"[DEBUG] {printme}");
+            Console.WriteLine($"[DEBUG] {printMe}");
         }
         [System.Diagnostics.Conditional("DEBUG")]
-        static public void WriteInst(DSConfig config, IntPtr instptr)
+        public static void WriteInst(DSConfig config, IntPtr instPtr)
         {
-            byte[] instbuff = new byte[config.inst_len];
+            byte[] instBuff = new byte[config.inst_len];
             for (int i = 0; i < Convert.ToInt32(config.inst_len); i++)
             {
-                instbuff[i] = Marshal.ReadByte(instptr + i);
+                instBuff[i] = Marshal.ReadByte(instPtr + i);
             }
-            File.WriteAllBytes(@"rawinstance.bin", instbuff);
+            File.WriteAllBytes(@"rawinstance.bin", instBuff);
             D.Print("Wrote raw instance to disk");
         }
+        
         public static void TestEncrypt()
         {
             byte[] mk = { 0x85, 0xc4, 0x7b, 0x5e, 0x39, 0x37, 0xa7, 0xf1, 0xf7, 0x10, 0xc0, 0x06, 0xf9, 0xfb, 0x65, 0x2d };
@@ -42,6 +43,7 @@ namespace Donut
             }
             pinned.Free();
         }
+        
         public static void TestChasKey()
         {
             byte[] plain = { 0x56, 0x09, 0xe9, 0x68, 0x5f, 0x58, 0xe3, 0x29, 0x40, 0xec, 0xec, 0x98, 0xc5, 0x22, 0x98, 0x2f };

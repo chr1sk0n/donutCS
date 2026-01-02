@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/Donut/CopilotIndices/18.0.981.45449
+/.vs/Donut/DesignTimeBuild
+/.vs/Donut/FileContentIndex
+/.vs
+/obj
+/bin/Debug
+*.user

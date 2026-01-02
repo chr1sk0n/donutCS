@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 
-using Donut.Structs;
+using DonutCore.Structs;
 
-namespace Donut
+namespace DonutCore
 {
     public class Helper
     {
@@ -225,7 +225,7 @@ namespace Donut
             {
                 // Make sure it's a validate URL (check this don't know exactly how it's checking)
                 D.Print("Validating URL");
-                if (Uri.IsWellFormedUriString(String(config.url), UriKind.Absolute) == false)
+                if (Uri.IsWellFormedUriString(Stringify(config.url), UriKind.Absolute) == false)
                 {
                     return Constants.DONUT_ERROR_INVALID_URL;
                 }
@@ -283,7 +283,7 @@ namespace Donut
                         bool found = false;
                         foreach (var func in exported)
                         {
-                            if (func.Name == String(config.method))
+                            if (func.Name == Stringify(config.method))
                             {
                                 found = true;
                             }
@@ -396,10 +396,10 @@ namespace Donut
                 }
 
                 // Check .NET and Reset Type
-                if (PE.HasValidComDescriptor == true)
+                if (PE.ImageComDescriptor != null)
                 {
                     D.Print("COM Descriptor found, .NET selected");
-                    if (PE.IsDLL == true)
+                    if (PE.IsDll)
                     {
                         fi.type = Constants.DONUT_MODULE_NET_DLL;
                     }
@@ -409,9 +409,9 @@ namespace Donut
                     }
 
                     Copy(fi.ver, PE.MetaDataHdr.Version);
-                    D.Print($"Runtime found in Metadata Header: {String(fi.ver)}");
+                    D.Print($"Runtime found in Metadata Header: {Stringify(fi.ver)}");
                 }
-                else if (PE.ImageRelocationDirectory.Length == 0)
+                else if (PE.ImageRelocationDirectory is { Length: 0 })
                 {
                     //Think this should be ok?
                     return Constants.DONUT_ERROR_NORELOC;
@@ -424,7 +424,7 @@ namespace Donut
             UInt64 dll_hash, final;
             inst.api.hash = new UInt64[64];
             D.Print("Generating API Hashes");
-            Dictionary<string, List<string>> apiimports = new Dictionary<string, List<string>>
+            Dictionary<string, List<string>> apiImports = new Dictionary<string, List<string>>
             {
                 {
                     Constants.KERNEL32_DLL,
@@ -457,13 +457,13 @@ namespace Donut
             };
 
             // Generate hashes
-            for (var l = 0; l < apiimports.Count; l++)
+            for (var l = 0; l < apiImports.Count; l++)
             {
-                for (var i = 0; i < apiimports.ElementAt(l).Value.Count; i++)
+                for (var i = 0; i < apiImports.ElementAt(l).Value.Count; i++)
                 {
-                    dll_hash = Maru(apiimports.ElementAt(l).Key, ref inst);
-                    final = Maru(apiimports.ElementAt(l).Value[i], ref inst) ^ dll_hash;
-                    D.Print($"{apiimports.ElementAt(l).Key}\t{apiimports.ElementAt(l).Value[i]}\t{string.Format("{0:X}", final)}");
+                    dll_hash = Maru(apiImports.ElementAt(l).Key, ref inst);
+                    final = Maru(apiImports.ElementAt(l).Value[i], ref inst) ^ dll_hash;
+                    D.Print($"{apiImports.ElementAt(l).Key}\t{apiImports.ElementAt(l).Value[i]}\t{final:X}");
                     inst.api.hash[inst.api_cnt++] = final;
                 }
             }
@@ -479,7 +479,7 @@ namespace Donut
             }
 
             // Assign hashes
-            string[] dlls = new string[4] { "ole32.dll", "oleaut32.dll", "wininet.dll", "mscoree.dll" };
+            string[] dlls = ["ole32.dll", "oleaut32.dll", "wininet.dll", "mscoree.dll"];
             for (int i = 0; i < dlls.Length; i++)
             {
                 char[] dllchar = new char[32];
@@ -496,63 +496,33 @@ namespace Donut
         // Correlate error value to string
         public static string GetError(int ret)
         {
-            string returnval = "";
-            switch (ret)
+            string returnval = ret switch
             {
-                case Constants.DONUT_ERROR_SUCCESS:
-                    returnval = "[*] Success";
-                    break;
-                case Constants.DONUT_ERROR_FILE_NOT_FOUND:
-                    returnval = "[-] File not found";
-                    break;
-                case Constants.DONUT_ERROR_FILE_EMPTY:
-                    returnval = "[-] File is empty";
-                    break;
-                case Constants.DONUT_ERROR_FILE_ACCESS:
-                    returnval = "[-] Cannot open file";
-                    break;
-                case Constants.DONUT_ERROR_FILE_INVALID:
-                    returnval = "[-] File is invalid";
-                    break;
-                case Constants.DONUT_ERROR_NET_PARAMS:
-                    returnval = "[-] File is a .NET DLL. Donut requires a class and method";
-                    break;
-                case Constants.DONUT_ERROR_NO_MEMORY:
-                    returnval = "[-] No memory available";
-                    break;
-                case Constants.DONUT_ERROR_INVALID_ARCH:
-                    returnval = "[-] Invalid architecture specified";
-                    break;
-                case Constants.DONUT_ERROR_INVALID_URL:
-                    returnval = "[-] Invalid URL";
-                    break;
-                case Constants.DONUT_ERROR_URL_LENGTH:
-                    returnval = "[-] Invalid URL length";
-                    break;
-                case Constants.DONUT_ERROR_INVALID_PARAMETER:
-                    returnval = "[-] Invalid parameter";
-                    break;
-                case Constants.DONUT_ERROR_RANDOM:
-                    returnval = "[-] Error generating random values";
-                    break;
-                case Constants.DONUT_ERROR_DLL_FUNCTION:
-                    returnval = "[-] Unable to locate DLL function provided. Names are case Constants.sensitive";
-                    break;
-                case Constants.DONUT_ERROR_ARCH_MISMATCH:
-                    returnval = "[-] Target architecture cannot support selected DLL/EXE file";
-                    break;
-                case Constants.DONUT_ERROR_DLL_PARAM:
-                    returnval = "[-] You've supplied parameters for an unmanaged DLL. Donut also requires a DLL function";
-                    break;
-                case Constants.DONUT_ERROR_BYPASS_INVALID:
-                    returnval = "[-] Invalid bypass option specified";
-                    break;
-                case Constants.DONUT_ERROR_NORELOC:
-                    returnval = "[-] This file has no relocation information required for in-memory execution.";
-                    break;
-            }
+                Constants.DONUT_ERROR_SUCCESS => "[*] Success",
+                Constants.DONUT_ERROR_FILE_NOT_FOUND => "[-] File not found",
+                Constants.DONUT_ERROR_FILE_EMPTY => "[-] File is empty",
+                Constants.DONUT_ERROR_FILE_ACCESS => "[-] Cannot open file",
+                Constants.DONUT_ERROR_FILE_INVALID => "[-] File is invalid",
+                Constants.DONUT_ERROR_NET_PARAMS => "[-] File is a .NET DLL. Donut requires a class and method",
+                Constants.DONUT_ERROR_NO_MEMORY => "[-] No memory available",
+                Constants.DONUT_ERROR_INVALID_ARCH => "[-] Invalid architecture specified",
+                Constants.DONUT_ERROR_INVALID_URL => "[-] Invalid URL",
+                Constants.DONUT_ERROR_URL_LENGTH => "[-] Invalid URL length",
+                Constants.DONUT_ERROR_INVALID_PARAMETER => "[-] Invalid parameter",
+                Constants.DONUT_ERROR_RANDOM => "[-] Error generating random values",
+                Constants.DONUT_ERROR_DLL_FUNCTION =>
+                    "[-] Unable to locate DLL function provided. Names are case Constants.sensitive",
+                Constants.DONUT_ERROR_ARCH_MISMATCH => "[-] Target architecture cannot support selected DLL/EXE file",
+                Constants.DONUT_ERROR_DLL_PARAM =>
+                    "[-] You've supplied parameters for an unmanaged DLL. Donut also requires a DLL function",
+                Constants.DONUT_ERROR_BYPASS_INVALID => "[-] Invalid bypass option specified",
+                Constants.DONUT_ERROR_NORELOC =>
+                    "[-] This file has no relocation information required for in-memory execution.",
+                _ => ""
+            };
             return returnval;
         }
+        
         public dynamic InitStruct(string type)
         {
             if (type == "DSConfig")
@@ -632,23 +602,23 @@ namespace Donut
             try
             {
                 // Raw bytes to file
-                FileStream f = new FileStream(Helper.String(config.outfile), FileMode.Create, FileAccess.Write);
+                FileStream f = new FileStream(Helper.Stringify(config.outfile), FileMode.Create, FileAccess.Write);
                 UnmanagedMemoryStream fs = new UnmanagedMemoryStream((byte*)config.pic, Convert.ToInt32(config.pic_cnt));
                 fs.CopyTo(f);
                 fs.Close();
                 f.Close();
-                Console.WriteLine($"\nRaw Payload: {Helper.String(config.outfile)}");
+                Console.WriteLine($"\nRaw Payload: {Helper.Stringify(config.outfile)}");
 
                 // Write B64 version
-                File.WriteAllText($@"{Helper.String(config.outfile)}.b64", Convert.ToBase64String(File.ReadAllBytes(Helper.String(config.outfile))));
-                Console.WriteLine($"B64 Payload: {Helper.String(config.outfile)}.b64\n");
+                File.WriteAllText($@"{Helper.Stringify(config.outfile)}.b64", Convert.ToBase64String(File.ReadAllBytes(Helper.Stringify(config.outfile))));
+                Console.WriteLine($"B64 Payload: {Helper.Stringify(config.outfile)}.b64\n");
             }
             catch
             {
                 Console.WriteLine("Failed to write payload to file");
             }
         }
-        public unsafe static UInt64 Maru(string input, ref DSInstance inst)
+        public static unsafe UInt64 Maru(string input, ref DSInstance inst)
         {
             byte[] zeros = new byte[Constants.MARU_BLK_LEN];
             for (var i = 0; i < zeros.Length; i++) { zeros[i] = 0x00; }
@@ -665,12 +635,12 @@ namespace Donut
             {
                 if (api[len] == 0 || len == Constants.MARU_MAX_STR)
                 {
-                    Buffer.MemoryCopy(ptr.ToPointer(), m.b + ind, Marshal.SizeOf(typeof(M)), Constants.MARU_BLK_LEN - ind);
+                    Buffer.MemoryCopy(ptr.ToPointer(), m.b + ind, Marshal.SizeOf<M>(), Constants.MARU_BLK_LEN - ind);
                     m.b[ind] = 0x80;
                     if (ind >= Constants.MARU_BLK_LEN - 4)
                     {
                         h ^= Maru_Crypt(m, h);
-                        Buffer.MemoryCopy(ptr.ToPointer(), m.b, Marshal.SizeOf(typeof(M)), Constants.MARU_BLK_LEN);
+                        Buffer.MemoryCopy(ptr.ToPointer(), m.b, Marshal.SizeOf<M>(), Constants.MARU_BLK_LEN);
                     }
                     m.w[(Constants.MARU_BLK_LEN / 4) - 1] = Convert.ToUInt32((len * 8));
                     ind = Constants.MARU_BLK_LEN;
@@ -689,7 +659,7 @@ namespace Donut
             }
             return h;
         }
-        public unsafe static UInt64 Maru_Crypt(M m, UInt64 p)
+        public static unsafe UInt64 Maru_Crypt(M m, UInt64 p)
         {
             UInt32[] k = new UInt32[4];
             UInt32 t, i;
@@ -724,7 +694,7 @@ namespace Donut
             }
             return x.q[0];
         }
-        public unsafe static void Encrypt(byte[] mk, byte[] ctr, IntPtr data, UInt64 size)
+        public static unsafe void Encrypt(byte[] mk, byte[] ctr, IntPtr data, UInt64 size)
         {
             int len = Convert.ToInt32(size);
             byte[] outbuff = new byte[16];
@@ -844,6 +814,7 @@ namespace Donut
                 config.pic_cnt++;
             }
         }
+        
         public static void PUT_INST(IntPtr instptr, int cnt, ref DSConfig config)
         {
             IntPtr ptr = config.pic + config.pic_cnt;
@@ -854,6 +825,7 @@ namespace Donut
             }
             Marshal.FreeHGlobal(instptr);
         }
+        
         public static string RandomString(int length)
         {
             Random random = new Random();
@@ -861,27 +833,41 @@ namespace Donut
             return new string(Enumerable.Repeat(chars, length)
               .Select(s => s[random.Next(s.Length)]).ToArray());
         }
+        
+        //public static byte[] RandomBytes(int length)
+        //{
+        //    byte[] rand = new byte[length];
+        //    RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
+        //    rng.GetBytes(rand);
+        //    return rand;
+        //}
+
         public static byte[] RandomBytes(int length)
         {
             byte[] rand = new byte[length];
-            RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-            rng.GetBytes(rand);
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(rand);
+            }
             return rand;
         }
+
         public static void Unicode(byte[] dest, string buff)
         {
             byte[] str = Encoding.Convert(Encoding.ASCII, Encoding.Unicode, Encoding.ASCII.GetBytes(buff));
             Array.Copy(str, dest, str.Length);
         }
 
-        public static string String(char[] source)
+        public static string Stringify(char[] source)
         {
             return new string(source).Replace("\0", "");
         }
+        
         public static void Copy(char[] dest, string source)
         {
             Array.Copy(source.ToCharArray(), 0, dest, 0, source.ToCharArray().Length);
         }
+        
         public static void Copy(byte[] dest, string source)
         {
             byte[] src = Encoding.ASCII.GetBytes(source);

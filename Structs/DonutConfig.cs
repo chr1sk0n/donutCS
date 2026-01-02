@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-// This is struct for converting to a DSConfig
-namespace Donut.Structs
+﻿// This is struct for converting to a DSConfig
+namespace DonutCore.Structs
 {
     public struct DonutConfig
     {

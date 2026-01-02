@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Donut.Structs
+namespace DonutCore.Structs
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct DSModule
@@ -24,6 +24,7 @@ namespace Donut.Structs
         public UInt64 len;
         public IntPtr data;  
     }
+    
     [StructLayout(LayoutKind.Sequential)]
     public struct P
     {
